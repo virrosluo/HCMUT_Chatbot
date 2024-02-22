@@ -14,7 +14,11 @@ def initialize_db(args):
     print("[+] Initialize database...")
     if args.dev:
         document_store = InMemoryDocumentStore(
-            use_gpu=False, use_bm25=ENABLE_BM25, embedding_dim=EMBEDDING_DIM
+            use_gpu=False, 
+            use_bm25=ENABLE_BM25, 
+            embedding_dim=EMBEDDING_DIM, 
+            similarity="cosine" if args.cosine else "dot_product",
+            index="faq"
         )
     else:
         document_store = QdrantDocumentStore(
@@ -25,6 +29,7 @@ def initialize_db(args):
             hnsw_config={"m": 128, "ef_construct": 100},
             similarity="dot_product",
             recreate_index=(not args.no_reindex),
+            index="faq"
         )
 
     processor = PreProcessor(

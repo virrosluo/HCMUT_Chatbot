@@ -11,7 +11,7 @@ BM25_TOP_K = 100
 EMBEDDING_MODEL = "bkai-foundation-models/vietnamese-bi-encoder"
 EMBEDDING_DIM = 768
 EMBEDDING_MAX_LENGTH = 256
-EMBEDDING_TOP_K = 3
+EMBEDDING_TOP_K = 200
 
 # LLM API ENDPOINT
 LLM_MODEL = "ura-hcmut/ura-llama-7b"
@@ -23,7 +23,8 @@ STOP_WORDS = ["</s>"]
 REPETITION_PENALTY = 1.1
 
 # FAQ HYPERPARAMETERS
-FAQ_FILE = "data/hcmut_data_faq.csv"
+# FAQ_FILE = "data/hcmut_data_faq.xlsx"
+FAQ_FILE = "data/hcmut_tuyensinh_faq.csv"
 FAQ_THRESHOLD = 80
 FAQ_TEMPERATURE = 0.3
 FAQ_TOP_P = 0.9

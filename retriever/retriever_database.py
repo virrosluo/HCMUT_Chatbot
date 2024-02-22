@@ -1,5 +1,9 @@
 # INITIALIZE DATABASE
 #####################################################################################
+import sys
+import os
+sys.path.append(os.getcwd())
+
 import re
 import pandas as pd
 from envs import *
@@ -12,9 +16,14 @@ from qdrant_haystack import QdrantDocumentStore
 
 def initialize_db(args):
     print("[+] Initialize database...")
+
     if args.dev:
         document_store = InMemoryDocumentStore(
-            use_gpu=False, use_bm25=ENABLE_BM25, embedding_dim=EMBEDDING_DIM
+            use_gpu=False, 
+            use_bm25=ENABLE_BM25, 
+            embedding_dim=EMBEDDING_DIM, 
+            similarity="cosine" if args.cosine else "dot_product",
+            index="faq"
         )
     else:
         document_store = QdrantDocumentStore(
@@ -23,8 +32,9 @@ def initialize_db(args):
             timeout=DB_TIMEOUT,
             embedding_field="embedding",
             hnsw_config={"m": 128, "ef_construct": 100},
-            similarity="dot_product",
+            similarity="cosine" if args.cosine else "dot_product",
             recreate_index=(not args.no_reindex),
+            index="faq"
         )
 
     processor = PreProcessor(
@@ -39,27 +49,30 @@ def initialize_db(args):
         max_chars_check=int(EMBEDDING_MAX_LENGTH * 1.5),
     )
 
-    if FAQ_FILE.endswith(".csv"):
+    if FAQ_FILE.endswith(".xlsx"):
+        faq_df = pd.read_excel(FAQ_FILE)
+    if FAQ_FILE.endswith("csv"):
         faq_df = pd.read_csv(FAQ_FILE)
-    elif FAQ_FILE.endswith(".json"):
-        faq_df = pd.read_json(FAQ_FILE)
+    else:
+        raise TypeError("Input file 'FAQ_FILE' is not excel, please check again")
 
-    if not ("query" in faq_df.columns and "answer" in faq_df.columns):
-        raise KeyError("FAQ file must have two keys 'query' and 'answer'")
-
-    if args.dev:
-        faq_df = faq_df.head(10)
+    # if args.dev:
+    #     faq_df = faq_df.head(10)
 
     faq_documents = []
     idx = 0
     for _, d in tqdm(faq_df.iterrows(), desc="Loading FAQ..."):
-        content = "Câu hỏi: " + d["query"] + " - Trả lời: " + d["answer"]
-        faq_documents.append(Document(content=content, id=idx))
+        content = d["Question"]
+        faq_documents.append(Document(content=content, id=idx, meta={'answer': d["Question"]}))
         idx += 1
+
+    print(f"[+] FAQ_FILE rows: {faq_df.shape[0]} - FAQ_DOCUMENTS rows: {len(faq_documents)}")
 
     faq_documents = processor.process(faq_documents)
     document_store.write_documents(
         documents=faq_documents, index="faq", batch_size=DB_BATCH_SIZE
     )
+
+    print(f"[+] FAQ_PROCESS: {len(faq_documents)} - DOCUMENT_STORE: {len(document_store.get_all_documents())}")
 
     return document_store

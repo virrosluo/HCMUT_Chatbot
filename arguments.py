@@ -7,4 +7,7 @@ parser.add_argument(
 parser.add_argument(
     "--dev", help="Enable developing mode", action="store_true", default=False
 )
+parser.add_argument(
+    "--cosine", help="Using cosine similarity", action="store_true", default=False
+)
 args = parser.parse_args()

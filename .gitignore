@@ -127,6 +127,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+virrosluo_ubuntu/
 
 # Spyder project settings
 .spyderproject
@@ -163,3 +164,7 @@ __pycache__
 .ipynb_checkpoints
 data/*.csv
 data/*.json
+
+# Retriever Folder
+retriever/*.ipynb
+retriever/__pycache__

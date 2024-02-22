@@ -1,5 +1,9 @@
 # SETTING UP PIPELINE
 #####################################################################################
+import sys
+import os
+sys.path.append(os.getcwd())
+
 import random
 import logging
 from envs import *
@@ -18,7 +22,6 @@ from retriever_database import initialize_db
 
 logger = logging.getLogger(__name__)
 
-
 class RetrieverPipeline:
     def __init__(self, document_store):
         if ENABLE_BM25:
@@ -34,12 +37,8 @@ class RetrieverPipeline:
         document_store.update_embeddings(
             embedding_retriever, index="faq", batch_size=DB_BATCH_SIZE
         )
-        document_store.update_embeddings(
-            embedding_retriever, index="web", batch_size=DB_BATCH_SIZE
-        )
 
         faq_threshold = DocumentThreshold(threshold=FAQ_THRESHOLD)
-        web_threshold = DocumentThreshold(threshold=WEB_THRESHOLD)
         docs2answers = Docs2Answers()
 
         self.faq_pipeline = Pipeline()
@@ -73,19 +72,19 @@ class RetrieverPipeline:
         kwargs["params"].update(self.faq_params)
         faq_ans = self.faq_pipeline.run(query, **kwargs)
 
-        # Nếu trong trường hợp chạy database không ra kết quả thì cần phải chạy sang web API để lấy ra kết quả
-        if len(faq_ans["answers"]) == 0 or faq_ans["answers"][0].answer.strip() == "":
-            kwargs["params"].update(self.web_params)
-            web_ans = self.web_pipeline.run(query, **kwargs)
+        # # Nếu trong trường hợp chạy database không ra kết quả thì cần phải chạy sang web API để lấy ra kết quả
+        # if len(faq_ans["answers"]) == 0 or faq_ans["answers"][0].answer.strip() == "":
+        #     kwargs["params"].update(self.web_params)
+        #     web_ans = self.web_pipeline.run(query, **kwargs)
 
-            if (
-                len(web_ans["answers"]) == 0
-                or web_ans["answers"][0].answer.strip() == ""
-            ):
-                chosen_ans = random.choice(DEFAULT_ANSWERS)
-                web_ans["answers"].append(Answer(chosen_ans, type="other"))
+        #     if (
+        #         len(web_ans["answers"]) == 0
+        #         or web_ans["answers"][0].answer.strip() == ""
+        #     ):
+        #         chosen_ans = random.choice(DEFAULT_ANSWERS)
+        #         web_ans["answers"].append(Answer(chosen_ans, type="other"))
 
-            return web_ans
+        #     return web_ans
 
         return faq_ans
     
@@ -102,15 +101,5 @@ def setup_retriever_pipelines(args):
     print("[+] Setting up pipeline...")
     pipelines["query_pipeline"] = RetrieverPipeline(document_store)
     pipelines["document_store"] = document_store
-
-    # Setup concurrency limiter
-    concurrency_limiter = RequestLimiter(config.CONCURRENT_REQUEST_PER_WORKER)
-    logger.info(
-        "Concurrent requests per worker: %s", config.CONCURRENT_REQUEST_PER_WORKER
-    )
-    pipelines["concurrency_limiter"] = concurrency_limiter
-
-    index_pipeline = None
-    pipelines["indexing_pipeline"] = index_pipeline
 
     return pipelines
